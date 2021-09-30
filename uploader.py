@@ -16,9 +16,9 @@ with open('preprocessed/activities.pickle', 'rb') as f:
     activities = load(f)
 
 # for user in users:
-#    query = "INSERT INTO user (id, has_labels) VALUES ('%s','%s')"
-#    cursor.execute(
-#        query % (user.id, 1 if user.has_labels else 0))
+#   query = "INSERT INTO user (id, has_labels) VALUES ('%s','%s')"
+#   cursor.execute(
+#       query % (user.id, 1 if user.has_labels else 0))
 # db_connection.commit()
 #
 #added = []

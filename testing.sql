@@ -31,9 +31,53 @@ select count(distinct user_id) from geolife_db.activity a where datediff(start_d
 
 -- Oppgave 5
 select id from geolife_db.activity where id in (select id from geolife_db.activity group by id having count(*) > 1);
--- Empty set
+-- OR
+SELECT start_date_time, end_date_time, COUNT(*)
+FROM geolife_db.activity
+GROUP BY start_date_time, end_date_time
+HAVING COUNT(*) > 1;
+-- Empty set nonetheless
 
 -- Oppgave 6
+SELECT  
+    a1.id as act_id_1,
+    a2.id as act_id_2
+FROM    
+    geolife_db.activity a1,
+    geolife_db.activity a2
+WHERE   
+    (
+    a2.start_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute) OR
+    a2.end_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute)
+    ) and
+    a1.id <> a2.id;
+
+-- | 20120412235005 | 20120413005853 |
+
+--geolife_db.geo_distance_km(tp1.lat, tp1.lon, tp2.lat, tp2.lon),
+    --timestampdiff(SECOND, tp1.date_time, tp2.date_time)
+SELECT distinct
+    st.id,
+    a1.user_id,
+    a2.user_id
+from
+    geolife_db.trackpoint tp1,
+    geolife_db.trackpoint tp2,
+    geolife_db.sup_table st,
+    geolife_db.activity a1,
+    geolife_db.activity a2
+where
+    a1.id = tp1.activity_id and
+    a2.id = tp2.activity_id and
+    a1.user_id <> a2.user_id and
+    tp1.activity_id = st.act_id_1 and
+    tp2.activity_id = st.act_id_2 and
+    geolife_db.geo_distance_km(tp1.lat, tp1.lon, tp2.lat, tp2.lon) < 0.1 and
+    (timestampdiff(SECOND, tp1.date_time, tp2.date_time) < 60 and timestampdiff(SECOND, tp1.date_time, tp2.date_time) > -60)
+limit 1000;
+
+select * from geolife_db.trackpoint where id in (3979913, 5002663);
+
 
 -- Oppgave 7
 select distinct user_id from geolife_db.activity where user_id not in (select user_id from geolife_db.activity where transportation_mode = 'taxi');
@@ -125,8 +169,8 @@ from (
 
 -- Oppgave 11
 select
-    act.user_id,
-    sum(altitude_gained)
+    act.user_id as 'User ID',
+    sum(altitude_gained) * 0.3048 as 'Meters gained'
 from (
     SELECT
         a.activity_id as inner_activity_id,
@@ -138,7 +182,9 @@ from (
     ON 
         a.id = b.id - 1
     where
-        b.altitude > a.altitude
+        b.altitude > a.altitude and
+        a.altitude != -777 and
+        b.altitude != -777
     group by
         a.activity_id
 ) as T,
@@ -150,73 +196,164 @@ group by
 order by
     sum(altitude_gained) desc
 limit 20;
--- 4,   1173001
--- 41,  920530
--- 30,  603017
--- 128, 547315
--- 39,  528486
--- 25,  491843
--- 3,   484717
--- 0,   427462
--- 2,   414222
--- 140, 370611
--- 37,  367507
--- 34,  325745
--- 62,  323703
--- 17,  272221
--- 42,  243411
--- 22,  217510
--- 14,  214876
--- 7,   206690
--- 13,  200068
--- 28,  182880
+
 
 
 -- Oppgave 12
-
-SELECT  
-    a1.id,
-    a1.start_date_time,
-    a1.end_date_time,
-    a2.id
-FROM    
-    geolife_db.activity a1, geolife_db.activity a2
-WHERE   
-    (
-    a2.start_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute) OR
-    a2.start_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute)
-    ) and
-    a1.id <> a2.id;
-
-/*
-timestampdiff(SECOND, start_date_time, end_date_time)
-
-
-select distinct
-    a.user_id,
-    b.user_id
-from
-    geolife_db.activity a,
-    geolife_db.activity b,
-    geolife_db.trackpoint tp,
-    geolife_db.trackpoint tp2
-where
-    a.user_id != b.user_id and
-    tp.activity_id = a.id and
-    tp2.activity_id = b.id and
-    timestampdiff(SECOND, tp.date_time, tp2.date_time) <= 60 and
-    geolife_db.geo_distance_km(tp.lat, tp.lon, tp2.lat, tp2.lon) < 0.1;
-
-
 select
-    count(distinct tp1.activity_id)
+    a.user_id as 'User ID',
+    count(distinct a2.id) as 'Total activities',
+    count(distinct a.id) as 'Invalid activities'
 from
+    geolife_db.activity a
+join
+    geolife_db.activity a2
+on
+    a.user_id = a2.user_id
+join
     geolife_db.trackpoint tp1
+on
+    tp1.activity_id = a.id
 join
     geolife_db.trackpoint tp2
 on
-    tp1.activity_id <> tp2.activity_id
+    tp1.id = tp2.id - 1
 where
-    timestampdiff(SECOND, tp1.date_time, tp2.date_time) <= 60 and
-    geolife_db.geo_distance_km(tp1.lat, tp1.lon, tp2.lat, tp2.lon) < 0.1;
-*/
+    tp1.activity_id = tp2.activity_id and
+    timestampdiff(SECOND, tp1.date_time, tp2.date_time) > 300
+group by
+    a.user_id
+order by
+    count(distinct a.id) desc;
+
+--|      25 |              714 |                263 |
+--|       4 |              344 |                219 |
+--|      41 |              399 |                201 |
+--|      39 |              198 |                147 |
+--|     128 |              518 |                138 |
+--|      62 |              406 |                133 |
+--|      17 |              265 |                129 |
+--|      14 |              236 |                118 |
+--|      30 |              210 |                112 |
+--|       0 |              155 |                101 |
+--|      37 |              129 |                100 |
+--|       2 |              146 |                 98 |
+--|       3 |              148 |                 98 |
+--|      34 |              180 |                 88 |
+--|     140 |              345 |                 86 |
+--|      38 |               72 |                 58 |
+--|      22 |               82 |                 55 |
+--|      42 |              110 |                 54 |
+--|     142 |              138 |                 52 |
+--|      15 |               60 |                 46 |
+--|       1 |               57 |                 45 |
+--|       5 |               73 |                 44 |
+--|      12 |               69 |                 43 |
+--|      28 |               53 |                 36 |
+--|      51 |               50 |                 36 |
+--|      36 |               44 |                 34 |
+--|      11 |              201 |                 32 |
+--|       9 |               37 |                 31 |
+--|      19 |               79 |                 31 |
+--|      44 |               61 |                 31 |
+--|     134 |               75 |                 31 |
+--|       7 |               40 |                 30 |
+--|     155 |               40 |                 30 |
+--|      13 |              119 |                 29 |
+--|      18 |               44 |                 27 |
+--|      24 |               49 |                 27 |
+--|      71 |               66 |                 27 |
+--|     115 |               81 |                 26 |
+--|      29 |               42 |                 25 |
+--|     103 |               47 |                 24 |
+--|      35 |               24 |                 23 |
+--|     119 |               32 |                 22 |
+--|      43 |               32 |                 21 |
+--|      16 |               36 |                 20 |
+--|      74 |               85 |                 19 |
+--|     168 |               83 |                 19 |
+--|      26 |               21 |                 18 |
+--|       6 |               24 |                 17 |
+--|      40 |               20 |                 17 |
+--|       8 |               23 |                 16 |
+--|      57 |               22 |                 16 |
+--|      55 |               19 |                 15 |
+--|      83 |               31 |                 15 |
+--|     181 |               15 |                 14 |
+--|      46 |               31 |                 13 |
+--|      61 |               20 |                 12 |
+--|      20 |               94 |                 11 |
+--|      23 |               16 |                 11 |
+--|      85 |               34 |                 11 |
+--|      99 |               16 |                 11 |
+--|     112 |               71 |                 10 |
+--|     131 |               15 |                 10 |
+--|     157 |               13 |                  9 |
+--|     158 |               14 |                  9 |
+--|     162 |               11 |                  9 |
+--|     169 |               33 |                  9 |
+--|     172 |               18 |                  9 |
+--|      50 |               12 |                  8 |
+--|      63 |               14 |                  8 |
+--|     130 |               14 |                  8 |
+--|     176 |                8 |                  8 |
+--|      45 |                8 |                  7 |
+--|     146 |               10 |                  7 |
+--|      47 |               12 |                  6 |
+--|      66 |                8 |                  6 |
+--|      73 |               53 |                  6 |
+--|     122 |                6 |                  6 |
+--|     164 |                7 |                  6 |
+--|      65 |               16 |                  5 |
+--|      78 |               39 |                  5 |
+--|     135 |                8 |                  5 |
+--|     145 |                5 |                  5 |
+--|     159 |                7 |                  5 |
+--|     173 |                6 |                  5 |
+--|      32 |                4 |                  4 |
+--|      84 |               12 |                  4 |
+--|      89 |                8 |                  4 |
+--|      93 |               22 |                  4 |
+--|      95 |               33 |                  4 |
+--|     121 |                5 |                  4 |
+--|     133 |                4 |                  4 |
+--|     163 |               32 |                  4 |
+--|      31 |                4 |                  3 |
+--|      77 |                3 |                  3 |
+--|      90 |                8 |                  3 |
+--|     109 |                4 |                  3 |
+--|     123 |                4 |                  3 |
+--|     126 |               22 |                  3 |
+--|     132 |                3 |                  3 |
+--|     167 |               21 |                  3 |
+--|     171 |                5 |                  3 |
+--|      27 |                3 |                  2 |
+--|      33 |                4 |                  2 |
+--|      54 |                2 |                  2 |
+--|      58 |                6 |                  2 |
+--|      72 |                2 |                  2 |
+--|      76 |                3 |                  2 |
+--|      79 |               23 |                  2 |
+--|      81 |                7 |                  2 |
+--|      86 |                3 |                  2 |
+--|      97 |                9 |                  2 |
+--|     108 |                3 |                  2 |
+--|     152 |                3 |                  2 |
+--|     153 |                5 |                  2 |
+--|     165 |               15 |                  2 |
+--|     166 |                8 |                  2 |
+--|     180 |                4 |                  2 |
+--|      21 |                1 |                  1 |
+--|      48 |                1 |                  1 |
+--|      56 |               15 |                  1 |
+--|      60 |                1 |                  1 |
+--|      67 |                1 |                  1 |
+--|      69 |                1 |                  1 |
+--|      80 |                2 |                  1 |
+--|      87 |                5 |                  1 |
+--|      92 |                2 |                  1 |
+--|     111 |                3 |                  1 |
+--|     113 |               31 |                  1 |
+--|     144 |                1 |                  1 |
+--|     151 |                1 |                  1 |
+--|     175 |                1 |                  1 |

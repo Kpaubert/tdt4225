@@ -11,8 +11,13 @@ activities = []
 trackpoints_omitted = 0
 trackpoints_total = 0
 
+activities_total = 0
+activities_omitted_labels = 0
+activities_omitted_num_trackpoints = 0
+
 with open('dataset\\dataset\\labeled_ids.txt', 'r') as f:
     user_ids_with_labels = [id.strip() for id in f.readlines()]
+
 
 # print(user_ids_with_labels)
 for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
@@ -21,6 +26,7 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
             users.append(User(name, name in user_ids_with_labels))
 
     for file in [f for f in files if f.endswith('.plt')]:
+        activities_total += 1
         current_path = os.path.join(root, file)
         user_id = current_path.split('\\')[3]
 
@@ -30,6 +36,7 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
                 trackpoints_total += int(len(file_content[6:]))
                 if len(file_content[6:]) > 2500:
                     trackpoints_omitted += int(len(file_content[6:]))
+                    activities_omitted_num_trackpoints += 1
                     continue
                 first_tp = file_content[6].split(',')
                 start_date_time = first_tp[-2].replace('-', '/').strip() + \
@@ -52,6 +59,7 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
                             found_match = True
                             break
                     if not found_match:
+                        activities_omitted_labels += 1
                         trackpoints_omitted += int(len(file_content[6:]))
 
         else:
@@ -60,6 +68,7 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
                 trackpoints_total += int(len(file_content[6:]))
                 if len(file_content[6:]) > 2500:
                     trackpoints_omitted += int(len(file_content[6:]))
+                    activities_omitted_num_trackpoints += 1
                     continue
                 first_tp = file_content[6].split(',')
                 start_date_time = first_tp[-2].replace('-', '/').strip() + \
@@ -74,9 +83,24 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
                 activities.append(activity)
 
 
+print(len(users))
+
 print(f'Trackpoints total: {trackpoints_total}')
 print(f'Trackpoints omitted: {trackpoints_omitted}')
 
+print(f'Activities total: {activities_total}')
+print(f'Activities omitted due to labels: {activities_omitted_labels}')
+print(
+    f'Activities omitted due to number of trackpoints: {activities_omitted_num_trackpoints}')
+
+user_ids = [user.id for user in users]
+activities_valid_user_id = len(
+    [0 for activity in activities if activity.user_id in (user_ids)])
+
+print(
+    f'Number of activities without valid user_id: {activities_valid_user_id}')
+
+"""
 with open('preprocessed/users.pickle', 'wb+') as f:
     print(f'Dumping {len(users)} users.')
     dump(users, f)
@@ -84,3 +108,4 @@ with open('preprocessed/users.pickle', 'wb+') as f:
 with open('preprocessed/activities.pickle', 'wb+') as f:
     print(f'Dumping {len(activities)} activities.')
     dump(activities, f)
+"""
