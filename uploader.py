@@ -15,11 +15,14 @@ with open('preprocessed/users.pickle', 'rb') as f:
 with open('preprocessed/activities.pickle', 'rb') as f:
     activities = load(f)
 
+
 # for user in users:
-#   query = "INSERT INTO user (id, has_labels) VALUES ('%s','%s')"
-#   cursor.execute(
-#       query % (user.id, 1 if user.has_labels else 0))
+#    query = "INSERT INTO user (id, has_labels) VALUES ('%s','%s')"
+#    cursor.execute(
+#        query % (user.id, 1 if user.has_labels else 0))
 # db_connection.commit()
+#
+#print('done users')
 #
 #added = []
 #
@@ -31,7 +34,7 @@ with open('preprocessed/activities.pickle', 'rb') as f:
 #        query % (activity.id, activity.user_id, activity.transportations_mode, activity.start_date_time, activity.end_date_time))
 #    added.append(activity.id)
 # db_connection.commit()
-#
+#print('done acts')
 
 finished = 0
 cursor.execute('SELECT id, user_id FROM activity')

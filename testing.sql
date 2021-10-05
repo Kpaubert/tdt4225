@@ -1,33 +1,44 @@
 -- Oppgave 1
 select count(*) as 'Number of users' from geolife_db.user;
--- 182
 select count(*) as 'Number of activities' from geolife_db.activity;
--- 7670
 select count(*) as 'Number of trackpoints' from geolife_db.trackpoint;
--- 5227362
 
 -- Oppgave 2
-SELECT min(inner_user_count), avg(inner_user_count), max(inner_user_count) FROM (SELECT user_id as inner_user_id, COUNT(user_id) as inner_user_count FROM geolife_db.activity GROUP BY user_id) as T;
--- 1, 52.1769, 714 
+SELECT 
+    min(inner_user_count) as 'Minimum number of activities',
+    avg(inner_user_count) as 'Average number of activities',
+    max(inner_user_count) as 'Maximum number of activities'
+FROM 
+    (
+        SELECT
+            user_id as inner_user_id,
+            COUNT(user_id) as inner_user_count
+        FROM
+            geolife_db.activity 
+        GROUP BY 
+            user_id
+    ) as T;
 
 -- Oppgave 3
-SELECT inner_user_id, inner_user_count FROM (SELECT user_id as inner_user_id, COUNT(user_id) as inner_user_count FROM geolife_db.activity GROUP BY user_id order by inner_user_count desc limit 10) as T;
--- 25, 714
--- 128, 518
--- 62, 406
--- 41, 399
--- 140, 345
--- 4, 344
--- 17, 265
--- 14, 236
--- 30, 210
--- 11, 201
+SELECT 
+    inner_user_id as 'User ID', 
+    inner_user_count as 'Number of activities' 
+FROM 
+    (
+        SELECT
+            user_id as inner_user_id,
+            COUNT(user_id) as inner_user_count
+        FROM
+            geolife_db.activity 
+        GROUP BY
+            user_id 
+        order by
+            inner_user_count desc 
+        limit 10
+    ) as T;
 
 -- Oppgave 4
-select count(distinct user_id) from geolife_db.activity a where datediff(start_date_time, end_date_time) <> 0;
--- 63
--- select count(distinct user_id) from geolife_db.activity a where (select datediff(min(date_time), max(date_time)) from geolife_db.trackpoint tp where a.id = tp.activity_id) <> 0;
--- select a.user_id, count(a.user_id) from geolife_db.activity a where (select datediff(min(date_time), max(date_time)) from geolife_db.trackpoint tp where a.id = tp.activity_id) <> 0 group by a.user_id;
+select count(distinct user_id) as 'Num users with activities with different start date and end date' from geolife_db.activity a where datediff(start_date_time, end_date_time) <> 0;
 
 -- Oppgave 5
 select id from geolife_db.activity where id in (select id from geolife_db.activity group by id having count(*) > 1);
@@ -42,7 +53,7 @@ HAVING COUNT(*) > 1;
 SELECT  
     a1.id as act_id_1,
     a2.id as act_id_2
-FROM    
+FROM
     geolife_db.activity a1,
     geolife_db.activity a2
 WHERE   
@@ -50,7 +61,8 @@ WHERE
     a2.start_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute) OR
     a2.end_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute)
     ) and
-    a1.id <> a2.id;
+    a1.id <> a2.id and -- 35924 med bare denne
+    a1.user_id <> a2.user_id; -- 34654 med denne og
 
 -- | 20120412235005 | 20120413005853 |
 
@@ -80,62 +92,47 @@ select * from geolife_db.trackpoint where id in (3979913, 5002663);
 
 
 -- Oppgave 7
-select distinct user_id from geolife_db.activity where user_id not in (select user_id from geolife_db.activity where transportation_mode = 'taxi');
--- 137
--- 0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,11 ,12 ,13 ,14 ,15 ,16 ,17 ,18 ,19 ,20 ,21 ,22 ,23 ,24 ,25 ,26 ,27 ,28 ,29 ,30 ,31 ,32 ,33 ,34 ,35 ,36 ,37 ,38 ,39 ,40 ,41 ,42 ,43 ,44 ,45 ,46 ,47 ,48 ,50 ,51 ,52 ,54 ,55 ,56 ,57 ,60 ,61 ,63 ,64 ,65 ,66 ,67 ,69 ,71 ,72 ,73 ,74 ,76 ,77 ,79 ,81 ,82 ,83 ,84 ,86 ,87 ,89 ,90 ,91 ,92 ,93 ,95 ,97 ,99 ,101 ,102 ,103 ,107 ,108 ,109 ,112 ,113 ,115 ,117 ,119 ,121 ,122 ,123 ,125 ,126 ,130 ,131 ,132 ,133 ,134 ,135 ,136 ,138 ,139 ,140 ,142 ,144 ,145 ,146 ,151 ,152 ,153 ,155 ,157 ,158 ,159 ,161 ,162 ,164 ,165 ,166 ,167 ,168 ,169 ,171 ,172 ,173 ,175 ,176 ,178 ,180 ,181 |
+select 
+    distinct id
+from
+    geolife_db.user 
+where
+    id not in 
+        (
+            select
+                user_id
+            from
+                geolife_db.activity
+            where
+                transportation_mode = 'taxi'
+        );
 
 -- Oppgave 8
-select transportation_mode, count(distinct user_id) from geolife_db.activity where transportation_mode != 'NULL' group by transportation_mode;
--- airplane,    1
--- bike,        19
--- boat,        1
--- bus,         12
--- car,         8
--- run,         1
--- subway,      4
--- taxi,        10
--- train,       2
--- walk,        31
+select transportation_mode as 'Transportation mode', count(distinct user_id) as 'Distinct users' from geolife_db.activity where transportation_mode != 'NULL' and transportation_mode != 'None' group by transportation_mode;
 
 -- Oppgave 9a
-select year(start_date_time), month(start_date_time), count(1) from geolife_db.activity group by year(start_date_time), month(start_date_time) order by count(1) desc limit 1;
--- 2008, november - 766
+select year(start_date_time) as 'Year', month(start_date_time) as 'Month', count(1) as 'Number of activities' from geolife_db.activity group by year(start_date_time), month(start_date_time) order by count(1) desc limit 1;
+
 
 -- Oppgave 9b
-select user_id, count(1), sum(timestampdiff(SECOND, start_date_time, end_date_time)) from geolife_db.activity where year(start_date_time) = 2008 and month(start_date_time) = 11 group by user_id order by count(1) desc;
--- 62,   105,    143203
--- 14,   74,     266018
--- 128,  59,     147492
--- 11,   59,     90229
--- 17,   51,     234114
--- 19,   45,     128316
--- 4,    37,     701488
--- 5,    34,     330691
--- 15,   32,     379168
--- 3,    31,     514935
--- 12,   28,     587550
--- 18,   27,     120086
--- 1,    24,     249019
--- 0,    23,     167486
--- 2,    21,     323063
--- 13,   20,     52195
--- 7,    19,     429359
--- 16,   17,     98033
--- 9,    15,     269928
--- 6,    12,     199433
--- 8,    11,     101384
--- 42,   8,      43695
--- 85,   5,      8027
--- 126,  3,      2054
--- 140,  3,      16000
--- 167,  2,      2007
--- 84,   1,      13510
--- Person med ID 62 hadde flest aktiviteter med 105.
--- Altså feil, personen med nest flest aktiviteter har flere timer enn personen med flest aktiviteter.
+select
+    user_id as 'User ID',
+    count(1) as 'Number of activities in November, 2008',
+    sum(timestampdiff(SECOND, start_date_time, end_date_time)) / 3600 as 'Hours registered'
+from
+    geolife_db.activity
+where
+    year(start_date_time) = 2008 and
+    month(start_date_time) = 11
+group by
+    user_id 
+order by
+    count(1) desc
+limit 10;
 
 -- Oppgave 10
 select 
-    sum(distance) as Total
+    sum(distance) as 'Kilometers walked by user 112 in 2008'
 from (
     SELECT
     a.activity_id,
@@ -164,8 +161,6 @@ from (
     group by
         a.activity_id
 ) as T;
--- 147.2681198663135 km hvis man bruker haversine
--- Tror man kan gjøre noe med den euclidean distance greia
 
 -- Oppgave 11
 select

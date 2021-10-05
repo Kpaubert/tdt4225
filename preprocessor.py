@@ -59,8 +59,13 @@ for root, dirs, files in os.walk("dataset\\dataset\\Data", topdown=False):
                             found_match = True
                             break
                     if not found_match:
-                        activities_omitted_labels += 1
-                        trackpoints_omitted += int(len(file_content[6:]))
+                        activity_id = file.replace('.plt', '')
+                        activity = Activity(activity_id, user_id,
+                                            None, start_date_time, end_date_time)
+
+                        activities.append(activity)
+                        # activities_omitted_labels += 1
+                        # trackpoints_omitted += int(len(file_content[6:]))
 
         else:
             with open(current_path, 'r') as f:
@@ -93,14 +98,7 @@ print(f'Activities omitted due to labels: {activities_omitted_labels}')
 print(
     f'Activities omitted due to number of trackpoints: {activities_omitted_num_trackpoints}')
 
-user_ids = [user.id for user in users]
-activities_valid_user_id = len(
-    [0 for activity in activities if activity.user_id in (user_ids)])
 
-print(
-    f'Number of activities without valid user_id: {activities_valid_user_id}')
-
-"""
 with open('preprocessed/users.pickle', 'wb+') as f:
     print(f'Dumping {len(users)} users.')
     dump(users, f)
@@ -108,4 +106,3 @@ with open('preprocessed/users.pickle', 'wb+') as f:
 with open('preprocessed/activities.pickle', 'wb+') as f:
     print(f'Dumping {len(activities)} activities.')
     dump(activities, f)
-"""
