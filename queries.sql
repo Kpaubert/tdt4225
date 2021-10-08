@@ -69,6 +69,7 @@ HAVING
 -- Empty set nonetheless
 
 -- Subtask 6
+set @row_number = 0;
 SELECT distinct
     st.id,
     a1.user_id,
