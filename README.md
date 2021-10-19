@@ -1,9 +1,5 @@
-# tdt4225
+# TDT4225
 
-## Relevant files:
-### preprocessor.py
-Contains code for preprocessing the original dataset.
-### uploader.py
-Code for uploading the processed data to the database.
-### queries.sql
-SQL queries for the different subtasks in task 2.
+### Exercises
+Exercise 2 can be found in the folder "Exercise 2".
+Exercise 3 can be found in the folder "Exercise 3".
