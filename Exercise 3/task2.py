@@ -302,7 +302,6 @@ def sub12() -> None:
 
     for act in activities:
         current += 1
-        ascended = 0
         current_trackpoints = list(db["trackpoint"].find(
             {"activity_id": act["_id"]}).sort("date_days", pymongo.ASCENDING))
         for i in range(len(current_trackpoints) - 1):
@@ -312,9 +311,9 @@ def sub12() -> None:
                 current_trackpoints[i+1]["date_time"], '%Y/%m/%d %H:%M:%S')
             if (next_time-curr_time).seconds >= 300:
                 if act["user_id"] in users_with_num_invalid_acts:
-                    users_with_num_invalid_acts[act["user_id"]] += ascended
+                    users_with_num_invalid_acts[act["user_id"]] += 1
                 else:
-                    users_with_num_invalid_acts[act["user_id"]] = ascended
+                    users_with_num_invalid_acts[act["user_id"]] = 1
         print(f'Finished {current}\tout of {tot_len}')
 
     sorted_by_invalid_count = sort_dict_desc_by_value(
