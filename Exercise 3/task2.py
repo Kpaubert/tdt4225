@@ -314,6 +314,7 @@ def sub12() -> None:
                     users_with_num_invalid_acts[act["user_id"]] += 1
                 else:
                     users_with_num_invalid_acts[act["user_id"]] = 1
+                break
         print(f'Finished {current}\tout of {tot_len}')
 
     sorted_by_invalid_count = sort_dict_desc_by_value(
