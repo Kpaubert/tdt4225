@@ -310,7 +310,7 @@ def sub12() -> None:
                 current_trackpoints[i]["date_time"], '%Y/%m/%d %H:%M:%S')
             next_time = datetime.datetime.strptime(
                 current_trackpoints[i+1]["date_time"], '%Y/%m/%d %H:%M:%S')
-            if (next_time-curr_time).second >= 300:
+            if (next_time-curr_time).seconds >= 300:
                 if act["user_id"] in users_with_num_invalid_acts:
                     users_with_num_invalid_acts[act["user_id"]] += ascended
                 else:
