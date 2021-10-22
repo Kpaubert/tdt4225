@@ -67,18 +67,18 @@ def sub3() -> None:
 def sub4() -> None:
     """
         Number of users that have at least one activity
-        that starts on one day, and ends on another.
+        that starts on one day, and ends on the next.
     """
-    def same_day(act) -> bool:
+    def ends_next_day(act) -> bool:
         start_date_time = datetime.datetime.strptime(
             act["start_date_time"], '%Y/%m/%d %H:%M:%S')
         end_date_time = datetime.datetime.strptime(
             act["end_date_time"], '%Y/%m/%d %H:%M:%S')
-        return start_date_time.day == end_date_time.day
+        return (end_date_time - start_date_time).days == 1
     activities = list(db["activity"].find())
     users_with_diff_day = []
     for act in activities:
-        if not same_day(act) and act["user_id"] not in users_with_diff_day:
+        if ends_next_day(act) and act["user_id"] not in users_with_diff_day:
             users_with_diff_day.append(act["user_id"])
     print(
         f'Number of users with activities that span different days:\n\t{len(users_with_diff_day)}')
