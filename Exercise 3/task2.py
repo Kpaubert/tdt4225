@@ -81,7 +81,7 @@ def sub4() -> None:
         if ends_next_day(act) and act["user_id"] not in users_with_diff_day:
             users_with_diff_day.append(act["user_id"])
     print(
-        f'Number of users with activities that span different days:\n\t{len(users_with_diff_day)}')
+        f'Number of users with activities that end on the day after starting date:\n\t{len(users_with_diff_day)}')
 
 
 def sub5() -> None:
