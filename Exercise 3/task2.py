@@ -1,3 +1,4 @@
+import os
 import sys
 from DbConnector import DbConnector
 import itertools
@@ -5,6 +6,8 @@ import datetime
 from haversine import haversine
 import pymongo
 from math import isclose
+from typing import List
+from multiprocessing import Pool
 
 connection = DbConnector()
 client = connection.client
@@ -89,7 +92,7 @@ def sub5() -> None:
     activities_as_set = set([act["_id"] for act in activities])
     print(
         f'Number of activities:\n\t{len(activities)}.\nNumber of activities after removing dupes:\n\t{len(activities_as_set)}.')
-    print(f'\tThere are {len(activities)-len(activities_as_set)} duplicates.')
+    print(f'There are {len(activities)-len(activities_as_set)} duplicates.')
 
 
 def sub6() -> None:
@@ -121,8 +124,10 @@ def sub6() -> None:
         for trackpoint in trackpoints:
             trackpoint_point = (
                 float(trackpoint["lat"]), float(trackpoint["lon"]))
+            trackpoint_date_time = datetime.datetime.strptime(
+                trackpoint["date_time"], '%Y/%m/%d %H:%M:%S')
             distance_km = haversine(trackpoint_point, infection_point)
-            if distance_km < 0.1:
+            if distance_km < 0.1 and (time_of_infection - trackpoint_date_time <= one_min_timedelta or trackpoint_date_time - time_of_infection <= one_min_timedelta):
                 print(
                     f'\tUser {act["user_id"]} was within 100 meters ({distance_km * 1000} meters) of infection point at {trackpoint["date_time"]}.')
                 break
@@ -165,7 +170,10 @@ def sub8() -> None:
                 act["user_id"]]
     print('Distinct transportation modes with count:')
     for k, v in transportation_modes_with_count.items():
-        print(f'\t{k} has been used by {len(set(v))} users.')
+        if k == 'airplane':
+            print(f'\t{k}\thas been used by {len(set(v))} users.')
+        else:
+            print(f'\t{k}\t\thas been used by {len(set(v))} users.')
 
 
 def sub9a() -> None:
@@ -245,7 +253,7 @@ def sub10() -> None:
         acts_with_trackpoints[act["_id"]] = list(
             db["trackpoint"].find({"activity_id": act["_id"]}).sort("date_days", pymongo.ASCENDING))
     print('Done fetching all batches.')
-    for act_id, trackpoints in acts_with_trackpoints.items():
+    for _, trackpoints in acts_with_trackpoints.items():
         km_walked_by_112 += sum([haversine((float(trackpoints[i]["lat"]), float(trackpoints[i]["lon"])), (float(trackpoints[i+1]["lat"]), float(trackpoints[i+1]["lon"])))
                                  for i in range(len(trackpoints) - 1)])
 
@@ -291,31 +299,45 @@ def sub11() -> None:
         for_counter += 1
 
 
+def check_if_act_invalid(act) -> List[int]:
+    """
+        Helper function for subtask 12.
+        returns [user_id, 1] if invalid, otherwise [user_id, 0]
+
+        Needs to be defined in top level of module to be picklable.
+    """
+    print(f'Currently doing {act["_id"]}.')
+    current_trackpoints = list(db["trackpoint"].find(
+        {"activity_id": act["_id"]}).sort("date_days", pymongo.ASCENDING))
+    for i in range(len(current_trackpoints) - 1):
+        curr_time = datetime.datetime.strptime(
+            current_trackpoints[i]["date_time"], '%Y/%m/%d %H:%M:%S')
+        next_time = datetime.datetime.strptime(
+            current_trackpoints[i+1]["date_time"], '%Y/%m/%d %H:%M:%S')
+        if (next_time-curr_time).seconds >= 300:
+            return [act["user_id"], 1]
+    return [act["user_id"], 0]
+
+
 def sub12() -> None:
     """
         Count of invalid activities per user.
     """
+
     activities = list(db["activity"].find())
     users_with_num_invalid_acts = {}
-    tot_len = len(activities)
-    current = 0
+    users_with_invalid_acts_listlist = []
 
-    for act in activities:
-        current += 1
-        current_trackpoints = list(db["trackpoint"].find(
-            {"activity_id": act["_id"]}).sort("date_days", pymongo.ASCENDING))
-        for i in range(len(current_trackpoints) - 1):
-            curr_time = datetime.datetime.strptime(
-                current_trackpoints[i]["date_time"], '%Y/%m/%d %H:%M:%S')
-            next_time = datetime.datetime.strptime(
-                current_trackpoints[i+1]["date_time"], '%Y/%m/%d %H:%M:%S')
-            if (next_time-curr_time).seconds >= 300:
-                if act["user_id"] in users_with_num_invalid_acts:
-                    users_with_num_invalid_acts[act["user_id"]] += 1
-                else:
-                    users_with_num_invalid_acts[act["user_id"]] = 1
-                break
-        print(f'Finished {current}\tout of {tot_len}')
+    with Pool(os.cpu_count()) as p:
+        users_with_invalid_acts_listlist = p.map(
+            check_if_act_invalid, activities)
+
+    for l in users_with_invalid_acts_listlist:
+        if l[1] == 1:
+            if l[0] in users_with_num_invalid_acts:
+                users_with_num_invalid_acts[l[0]] += 1
+            else:
+                users_with_num_invalid_acts[l[0]] = 1
 
     sorted_by_invalid_count = sort_dict_desc_by_value(
         users_with_num_invalid_acts)
